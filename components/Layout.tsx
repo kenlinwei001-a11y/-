@@ -63,7 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({
   ];
 
   return (
-    <div className="flex h-screen w-full bg-sci-base text-sci-text font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-sci-base text-sci-text font-sans overflow-hidden transition-colors duration-300">
       <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 border-r border-slate-800 bg-sci-panel flex flex-col z-20 shadow-xl`}>
         {/* Logo Area */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
@@ -72,10 +72,10 @@ export const Layout: React.FC<LayoutProps> = ({
               <div className="w-6 h-6 rounded bg-sci-accent/20 border border-sci-accent flex items-center justify-center shadow-[0_0_10px_rgba(14,165,233,0.3)]">
                 <span className="text-sci-accent text-xs font-bold">E</span>
               </div>
-              <span className="font-bold tracking-tight text-white text-lg truncate">环境推演模拟<span className="font-light text-sci-muted">OS</span></span>
+              <span className="font-bold tracking-tight text-sci-text text-lg truncate">环境推演模拟<span className="font-light text-sci-muted">OS</span></span>
             </div>
           )}
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-1 hover:bg-white/5 rounded text-sci-muted hover:text-white transition-colors">
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-1 hover:bg-white/5 rounded text-sci-muted hover:text-sci-text transition-colors">
             <Menu size={18} />
           </button>
         </div>
@@ -86,8 +86,8 @@ export const Layout: React.FC<LayoutProps> = ({
           <div>
             {!sidebarCollapsed && <div className="px-3 mb-2 text-[10px] font-bold text-sci-muted uppercase tracking-wider">平台层 Platform</div>}
             {platformNav.map((item) => (
-              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-sci-accent/10 text-sci-accent border-l-2 border-sci-accent shadow-inner' : 'text-sci-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
-                <item.icon size={18} className={activePage === item.id ? 'text-sci-accent' : 'group-hover:text-white'} />
+              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-sci-accent/10 text-sci-accent border-l-2 border-sci-accent shadow-inner' : 'text-sci-muted hover:bg-white/5 hover:text-sci-text border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
+                <item.icon size={18} className={activePage === item.id ? 'text-sci-accent' : 'group-hover:text-sci-text'} />
                 {!sidebarCollapsed && <span className="text-sm font-medium">{item.label}</span>}
               </button>
             ))}
@@ -123,10 +123,10 @@ export const Layout: React.FC<LayoutProps> = ({
                           <div 
                             key={p.id} 
                             onClick={() => { onProjectChange(p); setProjectMenuOpen(false); }}
-                            className="p-2 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800 last:border-0"
+                            className="p-2 hover:bg-sci-surface cursor-pointer flex items-center gap-2 border-b border-slate-800 last:border-0"
                           >
                              <div className={`w-1.5 h-1.5 rounded-full ${p.type === 'Atmosphere' ? 'bg-blue-400' : 'bg-emerald-500'}`}></div>
-                             <div className="text-xs text-slate-300 truncate">{p.name}</div>
+                             <div className="text-xs text-sci-text truncate">{p.name}</div>
                           </div>
                         ))}
                       </div>
@@ -138,8 +138,8 @@ export const Layout: React.FC<LayoutProps> = ({
              {sidebarCollapsed && <div className="h-px bg-slate-800 mx-2 mb-3"></div>}
 
              {projectNav.map((item) => (
-              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-sci-accent/10 text-sci-accent border-l-2 border-sci-accent' : 'text-sci-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
-                <item.icon size={18} className={activePage === item.id ? 'text-sci-accent' : 'group-hover:text-white'} />
+              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-sci-accent/10 text-sci-accent border-l-2 border-sci-accent' : 'text-sci-muted hover:bg-white/5 hover:text-sci-text border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
+                <item.icon size={18} className={activePage === item.id ? 'text-sci-accent' : 'group-hover:text-sci-text'} />
                 {!sidebarCollapsed && <span className="text-sm font-medium">{item.label}</span>}
               </button>
             ))}
@@ -149,8 +149,8 @@ export const Layout: React.FC<LayoutProps> = ({
           <div>
             {!sidebarCollapsed && <div className="px-3 mb-2 text-[10px] font-bold text-purple-400 uppercase tracking-wider">AI 中台 Control Plane</div>}
              {aiPlatformNav.map((item) => (
-              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-purple-500/10 text-purple-400 border-l-2 border-purple-500' : 'text-sci-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
-                <item.icon size={18} className={activePage === item.id ? 'text-purple-400' : 'group-hover:text-white'} />
+              <button key={item.id} onClick={() => onNavigate(item.id as PageId)} className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full group mb-1 ${activePage === item.id ? 'bg-purple-500/10 text-purple-400 border-l-2 border-purple-500' : 'text-sci-muted hover:bg-white/5 hover:text-sci-text border-l-2 border-transparent'}`} title={sidebarCollapsed ? item.label : ''}>
+                <item.icon size={18} className={activePage === item.id ? 'text-purple-400' : 'group-hover:text-sci-text'} />
                 {!sidebarCollapsed && <span className="text-sm font-medium">{item.label}</span>}
               </button>
             ))}
@@ -161,7 +161,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="p-2 border-t border-slate-800 shrink-0">
            <button 
              onClick={() => onNavigate('system-settings')}
-             className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full ${activePage === 'system-settings' ? 'bg-slate-700 text-white' : 'text-sci-muted hover:bg-white/5 hover:text-white'}`}
+             className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 w-full ${activePage === 'system-settings' ? 'bg-slate-700 text-white' : 'text-sci-muted hover:bg-white/5 hover:text-sci-text'}`}
             >
               <Settings size={18} />
               {!sidebarCollapsed && <span className="text-sm font-medium">系统管理 System</span>}
@@ -172,7 +172,7 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-sci-base relative">
         {/* Top Header */}
-        <header className="h-16 border-b border-slate-800 bg-sci-base/80 backdrop-blur-md flex items-center justify-between px-6 z-10 sticky top-0">
+        <header className="h-16 border-b border-slate-800 bg-sci-base/80 backdrop-blur-md flex items-center justify-between px-6 z-10 sticky top-0 transition-colors duration-300">
           <div className="flex items-center gap-4">
              {isProjectContext && (
                <button 
@@ -183,7 +183,7 @@ export const Layout: React.FC<LayoutProps> = ({
                  <ArrowLeft size={16} />
                </button>
              )}
-             <h2 className="text-lg font-semibold text-white tracking-wide">
+             <h2 className="text-lg font-semibold text-sci-text tracking-wide">
                {activePage === 'system-settings' ? '系统管理中心' : activePage.startsWith('platform') ? 'Dashboard' : activePage.startsWith('ai') ? 'AI Control Plane' : activePage === 'project-overview' ? '项目总览' : currentProject.name}
              </h2>
              <span className="text-slate-700 text-lg font-light">|</span>
@@ -210,7 +210,7 @@ export const Layout: React.FC<LayoutProps> = ({
               </div>
             </div>
             <div className="h-6 w-px bg-slate-800 hidden md:block"></div>
-            <button className="relative text-sci-muted hover:text-white"><Bell size={18} /><span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-sci-danger rounded-full animate-pulse"></span></button>
+            <button className="relative text-sci-muted hover:text-sci-text"><Bell size={18} /><span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-sci-danger rounded-full animate-pulse"></span></button>
             
             {/* Copilot - Only shown in project context (excluding overview) */}
             {isProjectContext && (
