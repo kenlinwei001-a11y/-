@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   X, Check, ArrowRight, Brain, Database, Workflow, CircuitBoard, Map, 
-  Layers, Plus, Trash2, Server, Sparkles, FileText, ChevronRight, Link2, FileJson, Globe, Code2, MousePointerClick
+  Layers, Plus, Trash2, Server, Sparkles, FileText, ChevronRight, Link2, FileJson, Globe, Code2, MousePointerClick,
+  MapPin, Tag
 } from 'lucide-react';
 import { Project } from '../types';
 
@@ -12,40 +13,47 @@ interface ProjectWizardProps {
 }
 
 const steps = [
-  { id: 1, title: '项目定义', icon: Map, desc: '定义模拟目标、区域与介质' },
-  { id: 2, title: '数据接入', icon: Database, desc: '配置 GIS、监测站与遥感源' },
-  { id: 3, title: '工作流编排', icon: Workflow, desc: '低代码构建计算流程' },
+  { id: 1, title: '项目概况与定义', icon: Map, desc: '设定行政区划与模拟目标' },
+  { id: 2, title: '场景编排与数据', icon: Workflow, desc: '构建计算流程并挂载数据源' },
 ];
 
-// Available assets to select in the Low Code Editor
+// Available assets to select in the Low Code Editor (Translated)
 const availableAssets = {
   data: [
-    { id: 'd1', name: '国控站点监测流', source: 'API' },
-    { id: 'd2', name: 'Himawari-8 AOD', source: 'Satellite' },
-    { id: 'd3', name: 'ERA5 气象再分析', source: 'File' },
+    { id: 'd1', name: '国控站点实时监测流 (API)', source: '生态环境部' },
+    { id: 'd2', name: '葵花-8号 (Himawari-8) 气溶胶光学厚度', source: '卫星遥感中心' },
+    { id: 'd3', name: 'ERA5 全球气象再分析场', source: 'ECMWF' },
+    { id: 'd4', name: '本地工业源排放清单 (2023)', source: '本地数据库' },
   ],
   models: [
-    { id: 'm1', name: 'WRF-Chem (Online)', type: 'Physics' },
-    { id: 'm2', name: 'CMAQ (Offline)', type: 'Physics' },
-    { id: 'm3', name: 'DeepSeek-Reasoning', type: 'AI' },
+    { id: 'm1', name: 'WRF-Chem (在线耦合模式)', type: '机理模型' },
+    { id: 'm2', name: 'CMAQ (空气质量模型)', type: '机理模型' },
+    { id: 'm3', name: 'DeepSeek-Reasoning (环境大模型)', type: 'AI 推演' },
+    { id: 'm4', name: 'EFDC (水动力水质模型)', type: '机理模型' },
   ],
   algos: [
-    { id: 'a1', name: 'PMF Source Apportionment', lang: 'Python' },
-    { id: 'a2', name: 'Kriging Interpolation', lang: 'R' },
+    { id: 'a1', name: 'PMF 受体模型源解析', lang: 'Python' },
+    { id: 'a2', name: '克里金时空插值 (Kriging)', lang: 'R' },
+    { id: 'a3', name: '异常数据清洗 (Outlier Detection)', lang: 'Python' },
   ],
   agents: [
-    { id: 'ag1', name: 'Data Guardian', role: 'Governance' },
-    { id: 'ag2', name: 'Policy Reasoner', role: 'Decision' },
+    { id: 'ag1', name: '数据治理专员 (Data Guardian)', role: '质量控制' },
+    { id: 'ag2', name: '应急决策顾问 (Policy Reasoner)', role: '决策支持' },
   ]
 };
 
-// Consistent with DataManager mockConnectors (Project Scope)
-const availableConnectors = [
-  { id: '1', name: '国控站点监测网 API', type: 'API', source: 'MEE_China' },
-  { id: '2', name: 'NASA MODIS (Terra/Aqua)', type: 'Satellite', source: 'EarthData' },
-  { id: '3', name: '本地排放清单 DB', type: 'Database', source: 'PostgreSQL:5432' },
-  { id: '4', name: 'WRF 气象边界条件', type: 'File', source: 'FNL_2023.nc' },
-];
+// Geography Data Mock
+const provinces = ['广东省', '河北省', '江苏省', '浙江省', '四川省'];
+const cities: Record<string, string[]> = {
+    '广东省': ['广州市', '深圳市', '佛山市', '东莞市'],
+    '河北省': ['石家庄市', '唐山市', '保定市', '雄安新区'],
+    '江苏省': ['南京市', '苏州市', '无锡市'],
+};
+const districts: Record<string, string[]> = {
+    '广州市': ['天河区', '越秀区', '黄埔区', '南沙区'],
+    '佛山市': ['顺德区', '南海区', '禅城区'],
+    '唐山市': ['路北区', '曹妃甸区', '丰南区'],
+};
 
 interface WizardNode {
   id: string;
@@ -53,56 +61,50 @@ interface WizardNode {
   type: 'data' | 'model' | 'algorithm' | 'agent';
   x: number;
   y: number;
-  config?: any; // Stores the selected specific asset (e.g. "WRF-Chem")
+  config?: any; // Stores the selected specific asset
 }
 
 export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, onCreate }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<Project> & { selectedDataIds: string[] }>({
+  const [formData, setFormData] = useState({
     name: '',
-    type: 'Atmosphere',
-    region: 'JingJinJi',
-    selectedDataIds: ['1', '3']
+    type: 'Atmosphere', // 'Atmosphere' | 'Water' | 'Soil'
+    category: 'Assessment', // Project Category
+    scale: 'City',
+    province: '',
+    city: '',
+    district: '',
   });
   
-  // State for Step 3 (Low Code Editor)
+  // State for Step 2 (Low Code Editor)
   const [workflowNodes, setWorkflowNodes] = useState<WizardNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       setCurrentStep(c => c + 1);
     } else {
       // Finalize
       onCreate({
         id: `proj-${Date.now()}`,
-        name: formData.name || '未命名项目',
+        name: formData.name || '未命名仿真项目',
         code: `PROJ-${Math.floor(Math.random()*1000)}`,
-        region: formData.region || 'Unknown',
+        region: `${formData.city || formData.province} ${formData.district}`,
         type: formData.type as any,
         status: 'Active',
         health: 100,
-        lastModified: 'Just now',
-        description: 'Created via Wizard'
+        lastModified: '刚刚',
+        description: `类型: ${formData.category} | 尺度: ${formData.scale}`
       });
       onClose();
     }
   };
 
-  const toggleConnector = (id: string) => {
-    const current = formData.selectedDataIds || [];
-    if (current.includes(id)) {
-        setFormData({ ...formData, selectedDataIds: current.filter(cid => cid !== id) });
-    } else {
-        setFormData({ ...formData, selectedDataIds: [...current, id] });
-    }
-  };
-
   // Drag & Drop Simulation: Add generic node
   const addGenericNode = (type: 'data' | 'model' | 'algorithm' | 'agent') => {
-    const labels = { data: 'Data Node', model: 'Model Node', algorithm: 'Algo Node', agent: 'Agent Node' };
+    const labels = { data: '数据节点', model: '模型节点', algorithm: '算法节点', agent: '智能体节点' };
     const newNode: WizardNode = {
       id: `n-${Date.now()}`,
       label: labels[type], // Initial generic label
@@ -129,93 +131,146 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4 animate-in slide-in-from-right fade-in">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">项目名称 Project Name</label>
-              <input 
-                type="text" 
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-sci-accent outline-none"
-                placeholder="例如：京津冀区域大气重污染过程模拟"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-              />
+          <div className="space-y-6 animate-in slide-in-from-right fade-in">
+            {/* Project Basics */}
+            <div className="bg-slate-800/30 p-4 rounded border border-slate-700 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-sci-muted uppercase mb-2">项目名称</label>
+                  <input 
+                    type="text" 
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-sci-accent outline-none text-sm"
+                    placeholder="例如：2024年珠江流域枯水期水质达标模拟"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-sci-muted uppercase mb-2">业务类型</label>
+                    <select 
+                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                      value={formData.category}
+                      onChange={e => setFormData({...formData, category: e.target.value})}
+                    >
+                      <option value="Assessment">环境影响评价 (EIA)</option>
+                      <option value="Emergency">突发环境事件应急响应</option>
+                      <option value="Planning">环境规划与达标方案</option>
+                      <option value="Research">科学研究与机理分析</option>
+                      <option value="Traceability">污染溯源与归因</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-sci-muted uppercase mb-2">模拟介质</label>
+                    <select 
+                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                      value={formData.type}
+                      onChange={e => setFormData({...formData, type: e.target.value})}
+                    >
+                      <option value="Atmosphere">大气环境 (Atmosphere)</option>
+                      <option value="Water">地表水环境 (Surface Water)</option>
+                      <option value="Soil">土壤与地下水 (Soil & GW)</option>
+                      <option value="Ocean">海洋环境 (Ocean)</option>
+                    </select>
+                  </div>
+                </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">模拟介质 Medium</label>
-                <select 
-                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                  value={formData.type}
-                  onChange={e => setFormData({...formData, type: e.target.value as any})}
-                >
-                  <option value="Atmosphere">Atmosphere (大气)</option>
-                  <option value="Water">Water (水环境)</option>
-                  <option value="Soil">Soil (土壤)</option>
-                </select>
-              </div>
-              <div>
-                 <label className="block text-sm font-medium text-slate-300 mb-1">区域尺度 Region</label>
-                 <select className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
-                    <option>Macro (城市群/流域)</option>
-                    <option>Meso (城市/湖泊)</option>
-                    <option>Micro (工业区/河段)</option>
-                 </select>
-              </div>
+
+            {/* Geographic Scope */}
+            <div className="bg-slate-800/30 p-4 rounded border border-slate-700 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={16} className="text-sci-accent"/>
+                    <span className="text-sm font-bold text-white">行政区划与空间尺度</span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3">
+                   <div>
+                      <label className="block text-xs text-slate-500 mb-1">省份 / 直辖市</label>
+                      <select 
+                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                        value={formData.province}
+                        onChange={e => setFormData({...formData, province: e.target.value, city: '', district: ''})}
+                      >
+                         <option value="">请选择省份</option>
+                         {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                   </div>
+                   <div>
+                      <label className="block text-xs text-slate-500 mb-1">地级市</label>
+                      <select 
+                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                        value={formData.city}
+                        disabled={!formData.province}
+                        onChange={e => setFormData({...formData, city: e.target.value, district: ''})}
+                      >
+                         <option value="">请选择城市</option>
+                         {formData.province && cities[formData.province]?.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                   </div>
+                   <div>
+                      <label className="block text-xs text-slate-500 mb-1">区 / 县</label>
+                      <select 
+                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm"
+                        value={formData.district}
+                        disabled={!formData.city}
+                        onChange={e => setFormData({...formData, district: e.target.value})}
+                      >
+                         <option value="">(可选) 全市范围</option>
+                         {formData.city && districts[formData.city]?.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                   </div>
+                </div>
+
+                <div>
+                   <label className="block text-xs text-slate-500 mb-1">管控空间尺度</label>
+                   <div className="grid grid-cols-4 gap-2">
+                      {['区域级 (Cluster)', '城市级 (City)', '园区级 (Park)', '断面/点位 (Point)'].map(s => (
+                         <button 
+                            key={s}
+                            onClick={() => setFormData({...formData, scale: s})}
+                            className={`py-2 text-xs rounded border transition-colors ${
+                                formData.scale === s 
+                                ? 'bg-sci-accent/20 border-sci-accent text-white' 
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                            }`}
+                         >
+                            {s}
+                         </button>
+                      ))}
+                   </div>
+                </div>
             </div>
-            <div className="p-3 bg-slate-800/50 rounded border border-slate-700 text-xs text-slate-400">
-               目标设定：预测未来 72 小时 PM2.5 浓度，并进行工业源排放归因分析。
+            
+            <div className="p-3 bg-amber-500/10 rounded border border-amber-500/20 text-xs text-amber-200/80 flex gap-2">
+               <Tag size={14} className="mt-0.5 shrink-0"/>
+               系统将根据选择的区域自动加载相应的基础地理信息（路网、水系、DEM）和背景排放清单。
             </div>
           </div>
         );
       case 2:
-        return (
-           <div className="space-y-4 animate-in slide-in-from-right fade-in">
-              <h3 className="text-sm font-bold text-white">选择项目级数据接入 (Project Scope Data)</h3>
-              <p className="text-xs text-slate-400 mb-4">从数据中台接入已注册的连接器或数据资产。后续可在工作流中具体调用。</p>
-              <div className="grid grid-cols-2 gap-3">
-                 {availableConnectors.map((connector) => {
-                    const isSelected = formData.selectedDataIds?.includes(connector.id);
-                    return (
-                        <div 
-                           key={connector.id} 
-                           onClick={() => toggleConnector(connector.id)}
-                           className={`p-3 border rounded cursor-pointer relative transition-all ${
-                              isSelected 
-                              ? 'border-sci-accent bg-sci-accent/10' 
-                              : 'border-slate-700 hover:border-slate-500 bg-slate-800'
-                           }`}
-                        >
-                           {isSelected && <div className="absolute top-2 right-2 text-sci-accent"><Check size={16}/></div>}
-                           
-                           <div className="flex items-center gap-2 mb-2">
-                              <div className={`p-1.5 rounded ${isSelected ? 'text-sci-accent' : 'text-slate-400'}`}>
-                                 {connector.type === 'Database' ? <Database size={18}/> : 
-                                  connector.type === 'API' ? <Link2 size={18}/> : 
-                                  connector.type === 'Satellite' ? <Globe size={18}/> : <FileJson size={18}/>}
-                              </div>
-                              <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>{connector.type}</span>
-                           </div>
-                           
-                           <div className={`font-bold text-sm mb-1 ${isSelected ? 'text-white' : 'text-slate-300'}`}>{connector.name}</div>
-                           <div className="text-xs text-slate-500 mt-1 font-mono">{connector.source}</div>
-                        </div>
-                    );
-                 })}
-              </div>
-           </div>
-        );
-      case 3:
          const selectedNode = workflowNodes.find(n => n.id === selectedNodeId);
          
          return (
             <div className="flex h-[500px] border border-slate-700 rounded-lg overflow-hidden animate-in slide-in-from-right fade-in bg-slate-900/50">
                {/* Left: Generic Toolbox */}
                <div className="w-16 bg-slate-900 border-r border-slate-700 flex flex-col items-center py-4 gap-4 z-10">
-                  <div className="text-[10px] text-slate-500 font-bold uppercase rotate-[-90deg] mb-2">Tools</div>
-                  <button onClick={() => addGenericNode('data')} className="p-3 bg-blue-900/30 text-blue-400 rounded hover:bg-blue-900/50 hover:text-blue-200 transition" title="Data Node"><Database size={20}/></button>
-                  <button onClick={() => addGenericNode('model')} className="p-3 bg-purple-900/30 text-purple-400 rounded hover:bg-purple-900/50 hover:text-purple-200 transition" title="Model Node"><Server size={20}/></button>
-                  <button onClick={() => addGenericNode('algorithm')} className="p-3 bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 hover:text-emerald-200 transition" title="Algorithm Node"><Code2 size={20}/></button>
-                  <button onClick={() => addGenericNode('agent')} className="p-3 bg-amber-900/30 text-amber-400 rounded hover:bg-amber-900/50 hover:text-amber-200 transition" title="Agent Node"><CircuitBoard size={20}/></button>
+                  <div className="text-[10px] text-slate-500 font-bold uppercase rotate-[-90deg] mb-2 tracking-widest">工具箱</div>
+                  <button onClick={() => addGenericNode('data')} className="p-3 bg-blue-900/30 text-blue-400 rounded hover:bg-blue-900/50 hover:text-blue-200 transition relative group" title="数据节点">
+                     <Database size={20}/>
+                     <span className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">数据接入</span>
+                  </button>
+                  <button onClick={() => addGenericNode('model')} className="p-3 bg-purple-900/30 text-purple-400 rounded hover:bg-purple-900/50 hover:text-purple-200 transition relative group" title="模型节点">
+                     <Server size={20}/>
+                     <span className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">计算模型</span>
+                  </button>
+                  <button onClick={() => addGenericNode('algorithm')} className="p-3 bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 hover:text-emerald-200 transition relative group" title="算法节点">
+                     <Code2 size={20}/>
+                     <span className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">数理算法</span>
+                  </button>
+                  <button onClick={() => addGenericNode('agent')} className="p-3 bg-amber-900/30 text-amber-400 rounded hover:bg-amber-900/50 hover:text-amber-200 transition relative group" title="智能体节点">
+                     <CircuitBoard size={20}/>
+                     <span className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 pointer-events-none">智能体</span>
+                  </button>
                </div>
 
                {/* Center: Canvas */}
@@ -225,7 +280,7 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
                   {workflowNodes.length === 0 && (
                      <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 pointer-events-none">
                         <Workflow size={48} className="mb-2 opacity-20"/>
-                        <p className="text-xs">Drag & Drop generic nodes from left toolbar</p>
+                        <p className="text-xs">从左侧工具箱拖拽节点构建流程，并在右侧挂载数据源</p>
                      </div>
                   )}
 
@@ -263,7 +318,9 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
                         style={{ left: node.x, top: node.y }}
                      >
                         <div className="flex justify-between items-start">
-                           <span className="text-[9px] uppercase opacity-70 font-bold">{node.type}</span>
+                           <span className="text-[9px] uppercase opacity-70 font-bold">
+                               {node.type === 'data' ? '数据' : node.type === 'model' ? '模型' : node.type === 'algorithm' ? '算法' : 'Agent'}
+                           </span>
                            <button onClick={(e) => { e.stopPropagation(); removeNode(node.id); }} className="text-slate-400 hover:text-white"><Trash2 size={10}/></button>
                         </div>
                         <div className="text-xs font-medium truncate mt-1" title={node.label}>
@@ -271,9 +328,9 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
                         </div>
                         {/* Status if configured */}
                         {node.config ? (
-                            <div className="mt-1 flex items-center gap-1 text-[8px] text-green-400 opacity-80"><Check size={8}/> Configured</div>
+                            <div className="mt-1 flex items-center gap-1 text-[8px] text-green-400 opacity-80"><Check size={8}/> 已配置</div>
                         ) : (
-                            <div className="mt-1 flex items-center gap-1 text-[8px] text-amber-400 opacity-80 animate-pulse"><MousePointerClick size={8}/> Click to set</div>
+                            <div className="mt-1 flex items-center gap-1 text-[8px] text-amber-400 opacity-80 animate-pulse"><MousePointerClick size={8}/> 点击配置</div>
                         )}
                         
                         {/* Connector Dot */}
@@ -285,7 +342,7 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
 
                {/* Right: Component Configuration (Context Aware) */}
                {selectedNode ? (
-                   <div className="w-64 bg-sci-panel border-l border-slate-700 p-4 flex flex-col animate-in slide-in-from-right duration-200">
+                   <div className="w-72 bg-sci-panel border-l border-slate-700 p-4 flex flex-col animate-in slide-in-from-right duration-200">
                       <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700">
                          <div className={`p-1.5 rounded ${
                              selectedNode.type === 'data' ? 'bg-blue-500/20 text-blue-400' :
@@ -295,46 +352,50 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
                              {selectedNode.type === 'data' ? <Database size={16}/> : selectedNode.type === 'model' ? <Server size={16}/> : <Code2 size={16}/>}
                          </div>
                          <div>
-                             <h4 className="text-sm font-bold text-white capitalize">{selectedNode.type} Config</h4>
-                             <p className="text-[10px] text-slate-400">Select component implementation</p>
+                             <h4 className="text-sm font-bold text-white capitalize">节点配置</h4>
+                             <p className="text-[10px] text-slate-400">选择具体的资源实现</p>
                          </div>
                       </div>
 
                       <div className="flex-1 overflow-y-auto">
-                          <label className="text-xs text-slate-500 mb-2 block uppercase font-bold">Available Assets</label>
+                          <label className="text-xs text-slate-500 mb-2 block uppercase font-bold">
+                              {selectedNode.type === 'data' ? '可用数据源' : selectedNode.type === 'model' ? '可用模型库' : '可用算法库'}
+                          </label>
                           <div className="space-y-2">
                              {/* Dynamic List based on Node Type */}
                              {selectedNode.type === 'data' && availableAssets.data.map(item => (
                                  <div key={item.id} onClick={() => updateNodeConfig(selectedNode.id, item)} className={`p-2 rounded border cursor-pointer hover:bg-slate-800 transition ${selectedNode.config?.id === item.id ? 'bg-blue-900/30 border-blue-500 text-white' : 'border-slate-700 text-slate-300'}`}>
                                      <div className="text-xs font-bold">{item.name}</div>
-                                     <div className="text-[10px] text-slate-500">{item.source}</div>
+                                     <div className="text-[10px] text-slate-500 flex justify-between mt-1">
+                                        <span>来源: {item.source}</span>
+                                     </div>
                                  </div>
                              ))}
                              {selectedNode.type === 'model' && availableAssets.models.map(item => (
                                  <div key={item.id} onClick={() => updateNodeConfig(selectedNode.id, item)} className={`p-2 rounded border cursor-pointer hover:bg-slate-800 transition ${selectedNode.config?.id === item.id ? 'bg-purple-900/30 border-purple-500 text-white' : 'border-slate-700 text-slate-300'}`}>
                                      <div className="text-xs font-bold">{item.name}</div>
-                                     <div className="text-[10px] text-slate-500">{item.type}</div>
+                                     <div className="text-[10px] text-slate-500 mt-1">{item.type}</div>
                                  </div>
                              ))}
                              {selectedNode.type === 'algorithm' && availableAssets.algos.map(item => (
                                  <div key={item.id} onClick={() => updateNodeConfig(selectedNode.id, item)} className={`p-2 rounded border cursor-pointer hover:bg-slate-800 transition ${selectedNode.config?.id === item.id ? 'bg-emerald-900/30 border-emerald-500 text-white' : 'border-slate-700 text-slate-300'}`}>
                                      <div className="text-xs font-bold">{item.name}</div>
-                                     <div className="text-[10px] text-slate-500">{item.lang}</div>
+                                     <div className="text-[10px] text-slate-500 mt-1">{item.lang}</div>
                                  </div>
                              ))}
                              {selectedNode.type === 'agent' && availableAssets.agents.map(item => (
                                  <div key={item.id} onClick={() => updateNodeConfig(selectedNode.id, item)} className={`p-2 rounded border cursor-pointer hover:bg-slate-800 transition ${selectedNode.config?.id === item.id ? 'bg-amber-900/30 border-amber-500 text-white' : 'border-slate-700 text-slate-300'}`}>
                                      <div className="text-xs font-bold">{item.name}</div>
-                                     <div className="text-[10px] text-slate-500">{item.role}</div>
+                                     <div className="text-[10px] text-slate-500 mt-1">{item.role}</div>
                                  </div>
                              ))}
                           </div>
                       </div>
                    </div>
                ) : (
-                   <div className="w-64 bg-sci-panel border-l border-slate-700 p-8 flex flex-col items-center justify-center text-center">
+                   <div className="w-72 bg-sci-panel border-l border-slate-700 p-8 flex flex-col items-center justify-center text-center">
                        <MousePointerClick size={32} className="text-slate-600 mb-2"/>
-                       <p className="text-xs text-slate-500">Select a node to configure its component properties</p>
+                       <p className="text-xs text-slate-500">请点击画布中的节点<br/>进行参数配置</p>
                    </div>
                )}
             </div>
@@ -346,12 +407,12 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-[900px] bg-sci-panel border border-slate-700 rounded-lg shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="w-[960px] bg-sci-panel border border-slate-700 rounded-lg shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="h-14 border-b border-slate-700 flex items-center justify-between px-6 bg-slate-900/80">
           <div className="flex items-center gap-2">
              <div className="p-1.5 bg-sci-accent text-white rounded"><Plus size={16}/></div>
-             <span className="font-bold text-white">创建新仿真项目 (Wizard)</span>
+             <span className="font-bold text-white">新建仿真项目 (Project Wizard)</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={20}/></button>
         </div>
@@ -375,6 +436,9 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
                  )
               })}
            </div>
+           <div className="text-center mt-2 text-xs text-slate-400">
+               {steps.find(s => s.id === currentStep)?.desc}
+           </div>
         </div>
 
         {/* Body */}
@@ -387,15 +451,15 @@ export const ProjectWizard: React.FC<ProjectWizardProps> = ({ isOpen, onClose, o
            <button 
               onClick={() => setCurrentStep(c => Math.max(1, c - 1))}
               disabled={currentStep === 1}
-              className="px-4 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30"
+              className="px-4 py-2 text-sm text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-2"
            >
-              上一步
+              <ArrowRight size={14} className="rotate-180"/> 上一步
            </button>
            <button 
               onClick={handleNext}
               className="px-6 py-2 bg-sci-accent hover:bg-sky-600 text-white rounded text-sm font-bold flex items-center gap-2 shadow-lg shadow-sky-900/20"
            >
-              {currentStep === 3 ? '完成并初始化项目' : '下一步'} <ArrowRight size={16}/>
+              {currentStep === 2 ? '完成创建并初始化' : '下一步'} <ArrowRight size={16}/>
            </button>
         </div>
       </div>

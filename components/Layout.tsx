@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, Settings, Menu, Bell, Cpu, Activity, Bot, PieChart, Map,
   Database, PlayCircle, BarChart2, ChevronDown, Brain, Library, ShieldCheck,
-  ServerCog, Sparkles, CircuitBoard, Workflow, Plus, Code2, Network, LayoutGrid, Monitor
+  ServerCog, Sparkles, CircuitBoard, Workflow, Plus, Code2, Network, LayoutGrid, Monitor,
+  ArrowLeft
 } from 'lucide-react';
 import { PageId, Project } from '../types';
 
@@ -28,6 +29,18 @@ export const Layout: React.FC<LayoutProps> = ({
   // Check if current page is within a specific project context (for showing Copilot)
   const isProjectContext = activePage.startsWith('project-') && activePage !== 'project-overview';
 
+  // Hierarchical Back Navigation Logic
+  const handleBack = () => {
+    if (activePage === 'project-dashboard') {
+      onNavigate('project-overview');
+    } else {
+      // For sub-pages (workflow, simulation, data), go back to the project dashboard
+      onNavigate('project-dashboard');
+    }
+  };
+
+  const backButtonLabel = activePage === 'project-dashboard' ? '返回项目列表' : '返回项目监控';
+
   const platformNav = [
     { id: 'platform-dashboard', label: '平台态势总览', icon: LayoutDashboard },
     { id: 'platform-monitor', label: '运行监控中心', icon: Activity },
@@ -43,12 +56,11 @@ export const Layout: React.FC<LayoutProps> = ({
   const aiPlatformNav = [
     { id: 'ai-models', label: '模型库 Model Hub', icon: Brain },
     { id: 'ai-algorithms', label: '算法库 Algo Hub', icon: Code2 },
-    { id: 'ai-workflows', label: 'Workflow 池', icon: Workflow },
+    { id: 'ai-workflows', label: 'Workflow', icon: Workflow },
     { id: 'ai-agents', label: '智能体 Agent', icon: CircuitBoard },
     { id: 'ai-skills', label: 'Skills 能力池', icon: Sparkles },
     { id: 'ai-knowledge', label: '知识与记忆', icon: Library },
     { id: 'ai-ops', label: 'AI 运行监控', icon: ServerCog },
-    { id: 'ai-security', label: '安全与治理', icon: ShieldCheck },
   ];
 
   return (
@@ -163,6 +175,15 @@ export const Layout: React.FC<LayoutProps> = ({
         {/* Top Header */}
         <header className="h-16 border-b border-slate-800 bg-sci-base/80 backdrop-blur-md flex items-center justify-between px-6 z-10 sticky top-0">
           <div className="flex items-center gap-4">
+             {isProjectContext && (
+               <button 
+                 onClick={handleBack}
+                 className="mr-2 p-1.5 rounded-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-colors"
+                 title={backButtonLabel}
+               >
+                 <ArrowLeft size={16} />
+               </button>
+             )}
              <h2 className="text-lg font-semibold text-white tracking-wide">
                {activePage === 'system-settings' ? '系统管理中心' : activePage.startsWith('platform') ? 'Dashboard' : activePage.startsWith('ai') ? 'AI Control Plane' : activePage === 'project-overview' ? '项目总览' : currentProject.name}
              </h2>

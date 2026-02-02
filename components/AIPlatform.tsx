@@ -59,12 +59,6 @@ const knowledgeBases = [
   { id: 'k3', name: '大气物理机理文献集', docs: 8500, type: 'Scientific Paper', status: 'Indexing', lastUpdate: '5m ago' }
 ];
 
-const governancePolicies = [
-  { id: 'g1', name: '敏感地理数据脱敏', level: 'High', action: 'Masking', target: 'GIS Coordinates', status: 'Active' },
-  { id: 'g2', name: '大额算力调用审批', level: 'Medium', action: 'Approval', target: 'GPU > 100h', status: 'Active' },
-  { id: 'g3', name: 'Agent 决策人工兜底', level: 'Critical', action: 'Human-in-loop', target: 'Emergency Response', status: 'Active' }
-];
-
 const opsData = [
   { time: '10:00', tokens: 4000, latency: 120 },
   { time: '11:00', tokens: 3000, latency: 130 },
@@ -365,25 +359,6 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
                </div>
             </div>
          );
-      case 'ai-security':
-         return (
-            <div className="space-y-4 animate-in fade-in">
-               {governancePolicies.map(p => (
-                  <div key={p.id} onClick={() => handleItemClick(p)} className="p-4 bg-slate-800/50 border border-slate-700 rounded flex justify-between items-center cursor-pointer hover:border-amber-500/50">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-700 rounded text-amber-500"><ShieldCheck size={18}/></div>
-                        <div>
-                           <div className="text-sm font-bold text-white">{p.name}</div>
-                           <div className="text-xs text-slate-400">Action: {p.action} • Target: {p.target}</div>
-                        </div>
-                     </div>
-                     <span className={`px-2 py-1 rounded text-xs border ${p.level === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}`}>
-                        {p.level}
-                     </span>
-                  </div>
-               ))}
-            </div>
-         );
       default:
          return (
             <div className="flex flex-col items-center justify-center h-96 text-slate-500">
@@ -405,7 +380,6 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
         case 'ai-skills': return { title: 'Skills 能力池 Skill Pool', desc: '原子化能力封装，供 Agent 与 Workflow 调用' };
         case 'ai-knowledge': return { title: '知识与记忆 Knowledge', desc: 'RAG 知识库管理与本体构建' };
         case 'ai-ops': return { title: 'AI 运行监控 AI Ops', desc: 'Token 消耗、延迟监控与异常追踪' };
-        case 'ai-security': return { title: '安全与治理 Governance', desc: '权限控制、审计与合规策略' };
         default: return { title: 'AI Control Plane', desc: 'Platform Administration' };
      }
   };
@@ -440,7 +414,7 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
              <div className="h-14 border-b border-slate-700 flex items-center justify-between px-6 bg-slate-900/80 backdrop-blur">
                 <span className="font-bold text-white flex items-center gap-2">
                    {selectedItem.role ? <CircuitBoard size={16} className="text-sci-accent"/> : <Settings size={16} className="text-purple-400"/>}
-                   {view === 'ai-security' ? '策略详情 Policy' : '配置详情 Configuration'}
+                   {'配置详情 Configuration'}
                 </span>
                 <button onClick={() => setDetailOpen(false)} className="text-slate-400 hover:text-white transition-colors"><X size={18}/></button>
              </div>
@@ -658,7 +632,7 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
                    <ShieldCheck size={16} className="text-amber-500 mt-0.5 shrink-0"/>
                    <div>
                       <div className="text-xs font-bold text-amber-500 mb-1">合规性检查 Compliance</div>
-                      <p className="text-[10px] text-amber-500/80 leading-relaxed">
+                      <p className="text-[10px] text-amber-200/70 leading-relaxed">
                          此资源受 "Level 2 Data Policy" 约束。输出结果将自动进行 PII 脱敏处理。
                       </p>
                    </div>
