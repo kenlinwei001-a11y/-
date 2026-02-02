@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Brain, CircuitBoard, Library, ServerCog, Sparkles, ShieldCheck, 
   Search, Plus, Filter, MoreVertical, X, Check, Activity, Play,
   FileText, Settings, AlertTriangle, Workflow, Code2, ArrowLeft,
-  Calendar, User, Zap, Layers, Gauge
+  Calendar, User, Zap, Layers, Gauge, Network, Share2, ZoomIn, ZoomOut,
+  Scale, BookOpen, Download, Eye, FileCode, File
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Line 
@@ -26,10 +27,29 @@ const models = [
 ];
 
 const algorithms = [
-  { id: 'alg1', name: 'PMF_Source_Apportionment', type: 'Statistical', context: '-', cost: 'Free', status: 'Active', tags: ['Python', 'Source'], desc: '正定矩阵因子分解算法，用于受体模型源解析。' },
-  { id: 'alg2', name: 'Bayesian_Inversion_v4', type: 'Inverse', context: '-', cost: '$', status: 'Active', tags: ['Matlab', 'Emission'], desc: '基于贝叶斯推断的排放源反演算法。' },
-  { id: 'alg3', name: 'Kriging_Spatial_Interp', type: 'Geospatial', context: '-', cost: 'Free', status: 'Active', tags: ['R', 'GIS'], desc: '克里金时空插值算法，用于站点数据网格化。' },
-  { id: 'alg4', name: 'LSTM_Time_Series_Pred', type: 'Deep Learning', context: '-', cost: '$$', status: 'Active', tags: ['PyTorch', 'Forecast'], desc: '长短期记忆网络，用于单点污染物浓度预测。' }
+  // 1. 大气领域 (Atmosphere)
+  { id: 'alg-atm-1', name: 'WRF-Chem (大气化学传输)', type: 'Atmosphere', context: '-', cost: 'High', status: 'Active', tags: ['CTM', 'Simulation'], desc: '在线耦合的气象化学模式，模拟气溶胶与光化学反应。' },
+  { id: 'alg-atm-2', name: 'CMAQ (多尺度空气质量)', type: 'Atmosphere', context: '-', cost: 'High', status: 'Active', tags: ['EPA', 'Regional'], desc: '美国 EPA 开发的第三代空气质量模型系统。' },
+  { id: 'alg-atm-3', name: '高斯烟羽模型 (Gaussian)', type: 'Atmosphere', context: '-', cost: 'Free', status: 'Active', tags: ['Diffusion', 'Point Source'], desc: '适用于连续点源排放的稳态扩散模型。' },
+  { id: 'alg-atm-4', name: 'ST-GNN (时空图神经网络)', type: 'Atmosphere', context: '-', cost: '$$', status: 'Active', tags: ['AI', 'Graph'], desc: '捕捉监测站点时空依赖关系的深度学习模型。' },
+  
+  // 2. 固废领域 (Solid Waste)
+  { id: 'alg-sol-1', name: '系统动力学 (SD Model)', type: 'Solid Waste', context: '-', cost: 'Low', status: 'Active', tags: ['System', 'Policy'], desc: '模拟固废管理系统内各要素的反馈回路与动态演化。' },
+  { id: 'alg-sol-2', name: '混合整数规划 (MILP)', type: 'Solid Waste', context: '-', cost: '$', status: 'Active', tags: ['Optimization', 'Siting'], desc: '用于处理废弃物设施选址与容量分配的优化算法。' },
+  { id: 'alg-sol-3', name: 'VRP (车辆路径问题)', type: 'Solid Waste', context: '-', cost: '$$', status: 'Active', tags: ['Logistics', 'Heuristic'], desc: '优化垃圾清运车辆的收集路线与调度。' },
+  
+  // 3. 水环境领域 (Water)
+  { id: 'alg-wat-1', name: 'MIKE (水动力学模型)', type: 'Water', context: '-', cost: '$$$', status: 'Active', tags: ['Hydro', 'DHI'], desc: '模拟河流、湖泊、河口及海岸水动力及水质变化。' },
+  { id: 'alg-wat-2', name: 'SWAT (流域评估工具)', type: 'Water', context: '-', cost: 'Free', status: 'Active', tags: ['Basin', 'Hydrology'], desc: '预测流域土地管理措施对水、泥沙和农业化学物质的影响。' },
+  { id: 'alg-wat-3', name: 'WASP (水质分析模拟)', type: 'Water', context: '-', cost: 'Free', status: 'Active', tags: ['WQ', 'EPA'], desc: '模拟水体中污染物的归趋与输移，涵盖富营养化与有毒物质。' },
+  { id: 'alg-wat-4', name: 'CNN (遥感反演模型)', type: 'Water', context: '-', cost: '$$', status: 'Active', tags: ['AI', 'Vision'], desc: '基于卷积神经网络从卫星图像反演叶绿素a与悬浮物。' },
+
+  // 4. 通用领域 (General)
+  { id: 'alg-gen-1', name: '蒙特卡洛模拟 (Monte Carlo)', type: 'General', context: '-', cost: '$', status: 'Active', tags: ['Uncertainty', 'Risk'], desc: '通过随机采样进行不确定性分析与风险评估。' },
+  { id: 'alg-gen-2', name: '贝叶斯网络 (Bayesian)', type: 'General', context: '-', cost: '$', status: 'Active', tags: ['Causal', 'Inference'], desc: '用于处理不确定性知识推理与参数更新的概率图模型。' },
+  { id: 'alg-gen-3', name: 'Granger 因果检验', type: 'General', context: '-', cost: 'Free', status: 'Active', tags: ['Statistics', 'Causal'], desc: '分析时间序列数据间是否存在统计学上的因果关系。' },
+  { id: 'alg-gen-4', name: 'LSTM (长短期记忆网络)', type: 'General', context: '-', cost: '$$', status: 'Active', tags: ['AI', 'Time Series'], desc: '适用于处理和预测时间序列中间隔和延迟较长的事件。' },
+  { id: 'alg-gen-5', name: 'PMF (正定矩阵因子分解)', type: 'General', context: '-', cost: 'Free', status: 'Active', tags: ['Source', 'Receptor'], desc: '广泛应用于大气与水体污染源解析的受体模型。' },
 ];
 
 const workflows = [
@@ -40,24 +60,100 @@ const workflows = [
 ];
 
 const agents = [
-  { id: 'a1', name: 'Data Cleaner Agent', role: '数据治理', skills: ['缺失值填补', '异常检测'], model: 'Gemini 3 Flash', status: 'Active', desc: '自动扫描入库数据，标记并修复传感器漂移异常。' },
-  { id: 'a2', name: 'Model Selector', role: '模型调度', skills: ['适用性评估', '参数推荐'], model: 'Gemini 3 Pro', status: 'Active', desc: '根据气象条件和算力预算选择最优模拟模型。' },
-  { id: 'a3', name: 'Policy Reasoner', role: '决策解释', skills: ['溯源分析', '报告生成'], model: 'GPT-4o', status: 'Paused', desc: '将模拟结果转化为政策制定者可读的归因报告。' },
-  { id: 'a4', name: 'Reviewer Agent', role: '质量审核', skills: ['幻觉检测', '一致性校验'], model: 'Gemini 3 Pro', status: 'Active', desc: '审核其他 Agent 的输出，防止伪造数据。' }
+  // 大气环境 Agent
+  { id: 'atm-1', name: '空气质量预测 Agent', role: '未来污染水平判断', skills: ['多模型融合', '时序预测'], model: 'Gemini 3 Pro', status: 'Active', desc: '基于气象场与排放清单，进行未来 72 小时污染物浓度预测。' },
+  { id: 'atm-2', name: '污染成因分析 Agent', role: '找“谁导致了污染”', skills: ['源解析', '因果推断'], model: 'DeepSeek-Reasoning', status: 'Active', desc: '利用 PMF 与传输矩阵分析污染来源（工业/交通/扬尘）。' },
+  { id: 'atm-3', name: '减排情景评估 Agent', role: '哪种政策更有效', skills: ['情景推演', '多目标优化'], model: 'Gemini 3 Pro', status: 'Idle', desc: '评估不同减排力度（如限产 30%）对空气质量改善的贡献。' },
+  { id: 'atm-4', name: '应急扩散 Agent', role: '突发事故响应', skills: ['快速仿真', '风险划界'], model: 'WRF-LLM-Adapter', status: 'Active', desc: '针对突发泄漏事故，快速预测有毒气体扩散范围与撤离路径。' },
+
+  // 固废管理 Agent
+  { id: 'sol-1', name: '固废产生预测 Agent', role: '量的预判', skills: ['趋势回归', '人口关联分析'], model: 'Gemini 3 Flash', status: 'Active', desc: '基于城市发展数据预测未来中长期固废产生量趋势。' },
+  { id: 'sol-2', name: '设施规划 Agent', role: '投什么、建多大', skills: ['空间选址', '容量规划'], model: 'Gemini 3 Pro', status: 'Idle', desc: '综合考虑运输成本与环境邻避效应，推荐最优设施选址。' },
+  { id: 'sol-3', name: '清运调度 Agent', role: '怎么运最优', skills: ['路径规划 (VRP)', '运力调度'], model: 'DeepSeek-Reasoning', status: 'Active', desc: '动态优化垃圾收运车辆路径，降低物流成本与碳排放。' },
+  { id: 'sol-4', name: '风险管控 Agent', role: '风险是否可控', skills: ['不确定性评估', '风险矩阵'], model: 'Gemini 3 Pro', status: 'Active', desc: '评估填埋场渗滤液泄漏或焚烧厂排放超标的环境风险。' },
+
+  // 水环境 Agent
+  { id: 'wat-1', name: '水质预测 Agent', role: '水质是否达标', skills: ['水动力耦合', 'LSTM'], model: 'Gemini 3 Pro', status: 'Active', desc: '预测断面水质（TN/TP/COD）未来变化趋势及达标情况。' },
+  { id: 'wat-2', name: '富营养化评估 Agent', role: '藻华风险', skills: ['生态动力学', '遥感反演'], model: 'Vision-Pollution-Detect', status: 'Active', desc: '监测与推演湖库藻类生长趋势，预警水华爆发风险。' },
+  { id: 'wat-3', name: '源-汇分析 Agent', role: '污染从哪来', skills: ['负荷估算', '溯源追踪'], model: 'DeepSeek-Reasoning', status: 'Idle', desc: '解析流域内点源与面源污染负荷贡献，定位关键污染源。' },
+  { id: 'wat-4', name: '治理方案 Agent', role: '怎么治理', skills: ['方案生成', '成本效益分析'], model: 'Gemini 3 Pro', status: 'Active', desc: '对比工程措施（截污纳管）与非工程措施（生态补水）的治理效果。' },
 ];
 
 const skills = [
-  { id: 's1', name: 'Pollution_Source_Tracking', type: 'Algorithm', input: 'Concentration Matrix', output: 'Source Vector', version: 'v1.2.0', desc: '基于受体模型的源解析算法封装。' },
-  { id: 's2', name: 'Met_Data_Align', type: 'Data Tool', input: 'NetCDF', output: 'CSV', version: 'v2.0.1', desc: '对齐不同时空分辨率的气象数据。' },
-  { id: 's3', name: 'Scenario_Generator', type: 'Reasoning', input: 'Constraints', output: 'Scenario JSON', version: 'v1.0.0', desc: '基于自然语言生成 WRF namelist 配置。' },
-  { id: 's4', name: 'Knowledge_Search', type: 'RAG Tool', input: 'Query', output: 'Documents', version: 'v3.1.0', desc: '检索环境标准和历史案例库。' }
+  // 1. 通用基础 Skills
+  { id: 'gen-1', name: '数据同化 Skill', type: '通用', input: 'Obs + Model', output: 'Fused State', version: 'v2.1', desc: '多源数据融合 (Kalman/Bayesian)' },
+  { id: 'gen-2', name: '时序预测 Skill', type: '通用', input: 'History', output: 'Future', version: 'v3.0', desc: '时间序列外推 (ARIMA/LSTM)' },
+  { id: 'gen-3', name: '空间建模 Skill', type: '通用', input: 'Points', output: 'Field', version: 'v1.5', desc: '空间关联学习 (GNN/Kriging)' },
+  { id: 'gen-4', name: '不确定性分析 Skill', type: '通用', input: 'Model Out', output: 'Conf. Interval', version: 'v1.0', desc: '置信区间评估 (Monte Carlo)' },
+  { id: 'gen-5', name: '情景生成 Skill', type: '通用', input: 'Rules', output: 'Params', version: 'v2.0', desc: '参数组合生成 (Rule+Sampling)' },
+  { id: 'gen-6', name: '因果分析 Skill', type: '通用', input: 'Time Series', output: 'DAG', version: 'v1.2', desc: '成因归因 (Granger/DAG)' },
+  { id: 'gen-7', name: '模型融合 Skill', type: '通用', input: 'Multi-Res', output: 'Consensus', version: 'v4.0', desc: '多模型集成 (Ensemble)' },
+  { id: 'gen-8', name: '解释性分析 Skill', type: '通用', input: 'Blackbox', output: 'SHAP', version: 'v1.1', desc: '结果可解释性分析 (SHAP)' },
+
+  // 2. 大气领域 Skills
+  { id: 'atm-1', name: '气象驱动生成 Skill', type: '大气', input: 'Reanalysis', output: 'Met Field', version: 'v5.0', desc: '气象驱动场构建 (WRF)' },
+  { id: 'atm-2', name: '污染扩散计算 Skill', type: '大气', input: 'Emission', output: 'Concentration', version: 'v3.2', desc: '污染扩散模拟 (Gaussian/CTM)' },
+  { id: 'atm-3', name: '排放情景构建 Skill', type: '大气', input: 'Policy', output: 'Inventory', version: 'v2.1', desc: '政策假设建模 (排放清单)' },
+  { id: 'atm-4', name: 'CTM 推演 Skill', type: '大气', input: 'Inventory', output: 'AQI Grid', version: 'v5.3', desc: '空气质量推演 (CMAQ/CAMx)' },
+  { id: 'atm-5', name: '偏差订正 Skill', type: '大气', input: 'Raw Out', output: 'Corrected', version: 'v1.0', desc: '模拟结果偏差订正 (ML)' },
+
+  // 3. 固废领域 Skills
+  { id: 'sol-1', name: '产生量预测 Skill', type: '固废', input: 'Socio-Econ', output: 'Volume', version: 'v1.2', desc: '固废增长预测 (Regression/SD)' },
+  { id: 'sol-2', name: '系统演化推演 Skill', type: '固废', input: 'SD Model', output: 'State', version: 'v2.0', desc: '长期结构变化推演 (System Dynamics)' },
+  { id: 'sol-3', name: '选址优化 Skill', type: '固废', input: 'GIS+Cost', output: 'Locations', version: 'v1.5', desc: '设施布局优化 (MILP)' },
+  { id: 'sol-4', name: '运力调度 Skill', type: '固废', input: 'Demand', output: 'Routes', version: 'v3.1', desc: '运力路线调度 (VRP)' },
+  { id: 'sol-5', name: '风险评估 Skill', type: '固废', input: 'Hazard', output: 'Risk Matrix', version: 'v1.0', desc: '危废风险评估 (Monte Carlo)' },
+
+  // 4. 水环境领域 Skills
+  { id: 'wat-1', name: '水动力计算 Skill', type: '水环境', input: 'Bathymetry', output: 'Flow Field', version: 'v4.0', desc: '水动力流场模拟 (MIKE/EFDC)' },
+  { id: 'wat-2', name: '水质演化 Skill', type: '水环境', input: 'Hydro', output: 'TN/TP', version: 'v2.2', desc: '水质演化预测 (WASP)' },
+  { id: 'wat-3', name: '富营养化推演 Skill', type: '水环境', input: 'Nutrients', output: 'Algae', version: 'v1.3', desc: '富营养化/藻类响应 (AQUATOX)' },
+  { id: 'wat-4', name: '流域负荷计算 Skill', type: '水环境', input: 'Landuse', output: 'Load', version: 'v2.5', desc: '流域入湖负荷计算 (SWAT)' },
+  { id: 'wat-5', name: '遥感反演 Skill', type: '水环境', input: 'Sat Image', output: 'WQ Params', version: 'v3.0', desc: '水质参数遥感反演 (CNN)' },
 ];
 
-const knowledgeBases = [
-  { id: 'k1', name: '珠江三角洲历史案例库', docs: 1240, type: 'Project Memory', status: 'Synced', lastUpdate: '2h ago' },
-  { id: 'k2', name: '国家环境标准规范 (GB)', docs: 450, type: 'Standard', status: 'Synced', lastUpdate: '1d ago' },
-  { id: 'k3', name: '大气物理机理文献集', docs: 8500, type: 'Scientific Paper', status: 'Indexing', lastUpdate: '5m ago' }
+// --- Mock Data for Knowledge Base ---
+
+const techDocs = [
+  { id: 'd1', name: 'WRF-Chem User Guide v4.4.pdf', type: 'PDF', size: '12.5 MB', author: 'NCAR/NOAA', date: '2023-08-15' },
+  { id: 'd2', name: '珠江流域水动力参数率定报告.docx', type: 'DOCX', size: '4.2 MB', author: 'Project Team', date: '2023-11-20' },
+  { id: 'd3', name: 'CMAQ v5.3.2 Operational Guidance.pdf', type: 'PDF', size: '8.1 MB', author: 'US EPA', date: '2021-06-10' },
+  { id: 'd4', name: 'PMF 5.0 Fundamentals & Input Prep.pdf', type: 'PDF', size: '3.6 MB', author: 'Sonoma Tech', date: '2019-03-12' },
+  { id: 'd5', name: 'EFDC_Explorer_Model_Grid_Specs.json', type: 'JSON', size: '128 KB', author: 'Grid Team', date: '2024-01-05' },
+  { id: 'd6', name: 'DeepSeek-Reasoning Model Card.md', type: 'MD', size: '45 KB', author: 'AI Lab', date: '2024-02-01' },
 ];
+
+const policies = [
+  { id: 'p1', code: 'GB 3095-2025', name: '环境空气质量标准 (2025修订单)', department: '生态环境部', date: '2025-06-01', status: '即将实施', desc: '进一步收紧PM2.5年均浓度限值，新增超细颗粒物监测要求。' },
+  { id: 'p2', code: 'GB 3838-2026', name: '地表水环境质量标准 (2026版)', department: '生态环境部', date: '2026-01-01', status: '征求意见稿', desc: '强化新型污染物管控，调整流域生态流量保障指标体系。' },
+  { id: 'p3', code: 'HJ 633-2025', name: '环境空气质量指数（AQI）技术规定 v2', department: '生态环境部', date: '2025-03-15', status: '现行', desc: '优化重污染天气预警分级标准，与人体健康风险更紧密挂钩。' },
+  { id: 'p4', code: '十五五规划', name: '“十五五”生态环境保护规划纲要', department: '国务院', date: '2026-03-10', status: '规划', desc: '明确2026-2030年深入打好污染防治攻坚战的新目标与路线图。' },
+  { id: 'p5', code: 'Beautiful China', name: '美丽中国建设 2035 行动计划', department: '国务院', date: '2025-09-20', status: '实施中', desc: '面向2035年生态环境根本好转的长期战略部署与重点工程。' },
+];
+
+// Mock Knowledge Graph Data
+const mockGraphData: Record<string, {nodes: any[], links: any[]}> = {
+  'default': {
+     nodes: [
+        { id: 1, label: '珠江口', type: 'Region', r: 25, x: 400, y: 300, color: '#0EA5E9' },
+        { id: 2, label: '总氮 (TN)', type: 'Pollutant', r: 15, x: 250, y: 200, color: '#EF4444' },
+        { id: 3, label: '总磷 (TP)', type: 'Pollutant', r: 15, x: 250, y: 400, color: '#EF4444' },
+        { id: 4, label: '工业废水', type: 'Source', r: 20, x: 100, y: 300, color: '#F59E0B' },
+        { id: 5, label: '截污纳管工程', type: 'Action', r: 20, x: 550, y: 200, color: '#10B981' },
+        { id: 6, label: '水质达标', type: 'Outcome', r: 18, x: 700, y: 300, color: '#8B5CF6' },
+        { id: 7, label: 'GB 3838-2002', type: 'Standard', r: 15, x: 400, y: 150, color: '#6366F1' },
+     ],
+     links: [
+        { source: 4, target: 2, label: 'emits' },
+        { source: 4, target: 3, label: 'emits' },
+        { source: 2, target: 1, label: 'pollutes' },
+        { source: 3, target: 1, label: 'pollutes' },
+        { source: 5, target: 4, label: 'reduces' },
+        { source: 5, target: 6, label: 'contributes' },
+        { source: 7, target: 2, label: 'regulates' },
+     ]
+  }
+};
 
 const opsData = [
   { time: '10:00', tokens: 4000, latency: 120 },
@@ -132,9 +228,10 @@ const WorkflowCard = ({ workflow, onClick }: any) => (
 const AgentRow = ({ agent, onClick }: any) => (
   <tr onClick={onClick} className="border-b border-slate-800 hover:bg-white/5 cursor-pointer transition-colors group">
      <td className="px-4 py-3 text-white font-medium flex items-center gap-2">
-        <CircuitBoard size={16} className="text-sci-accent"/> {agent.name}
+        <CircuitBoard size={16} className={`shrink-0 ${agent.id.startsWith('atm') ? 'text-blue-400' : agent.id.startsWith('sol') ? 'text-amber-400' : 'text-cyan-400'}`}/> 
+        {agent.name}
      </td>
-     <td className="px-4 py-3 text-slate-400 text-xs">{agent.role}</td>
+     <td className="px-4 py-3 text-slate-300 text-xs font-medium">{agent.role}</td>
      <td className="px-4 py-3 text-slate-400 text-xs font-mono">{agent.model}</td>
      <td className="px-4 py-3">
         <div className="flex gap-1 flex-wrap max-w-[200px]">
@@ -145,31 +242,153 @@ const AgentRow = ({ agent, onClick }: any) => (
      </td>
      <td className="px-4 py-3">
         <span className={`px-2 py-0.5 rounded text-[10px] border ${
-           agent.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+           agent.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
         }`}>{agent.status}</span>
      </td>
   </tr>
 );
 
-const KnowledgeCard = ({ item, onClick }: any) => (
-   <div onClick={onClick} className="p-4 bg-slate-800/50 border border-slate-700 rounded hover:border-purple-400/50 cursor-pointer flex items-center justify-between">
-      <div className="flex items-center gap-3">
-         <div className="p-2 bg-slate-700 rounded"><Library size={18} className="text-purple-300"/></div>
-         <div>
-            <div className="font-medium text-white text-sm">{item.name}</div>
-            <div className="text-xs text-slate-400 flex gap-2">
-               <span>{item.type}</span>
-               <span>•</span>
-               <span>{item.docs} docs</span>
+const CategoryCard = ({ icon: Icon, title, desc, count, color, onClick }: any) => (
+  <div onClick={onClick} className="bg-sci-surface/40 border border-slate-700 p-6 rounded-lg cursor-pointer hover:border-sci-accent/50 hover:bg-slate-800 transition-all group relative animate-in zoom-in-95 duration-300">
+     <div className={`p-3 rounded-lg w-fit mb-4 bg-opacity-10 ${color.replace('text-', 'bg-')}`}>
+        <Icon size={24} className={color} />
+     </div>
+     <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+     <p className="text-sm text-slate-400 mb-4">{desc}</p>
+     <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-700/50 pt-3">
+        <span>{count} items</span>
+        <span className="flex items-center gap-1 group-hover:text-white transition-colors">Enter <ArrowLeft size={12} className="rotate-180"/></span>
+     </div>
+  </div>
+);
+
+// --- Knowledge Graph Visualization Component ---
+
+const KnowledgeGraphViewer = ({ data, onClose, title }: { data: {nodes: any[], links: any[]}, onClose: () => void, title: string }) => {
+   const [showSources, setShowSources] = useState(false);
+
+   // Mock sources linked to the graph
+   const sources = [
+      { id: 'src1', name: '珠江口水质监测报告_2023.pdf', type: 'PDF', confidence: 'High' },
+      { id: 'src2', name: 'GB 3838-2002 标准文档.txt', type: 'TXT', confidence: '100%' },
+      { id: 'src3', name: 'Expert_Knowledge_Base_v2.db', type: 'DB', confidence: 'Medium' }
+   ];
+
+   // Simple SVG based graph renderer
+   return (
+      <div className="h-full flex flex-col animate-in fade-in relative">
+         {/* Toolbar */}
+         <div className="h-12 border-b border-slate-700 flex items-center justify-between px-2 shrink-0 bg-sci-panel">
+            <div className="flex items-center gap-3">
+               <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors">
+                  <ArrowLeft size={18}/>
+               </button>
+               <span className="font-bold text-white flex items-center gap-2">
+                  <Network size={16} className="text-indigo-400"/> {title}
+               </span>
+               <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-slate-400 border border-slate-700">Graph View</span>
+            </div>
+            <div className="flex gap-2">
+               <button 
+                  onClick={() => setShowSources(!showSources)}
+                  className={`px-3 py-1.5 text-xs rounded border transition-colors flex items-center gap-2 ${showSources ? 'bg-sci-accent text-white border-sci-accent' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
+               >
+                  <FileText size={14}/> 查看源文件 Source Files
+               </button>
+               <div className="h-4 w-px bg-slate-700 self-center mx-1"></div>
+               <button className="p-1.5 bg-slate-800 border border-slate-700 rounded text-slate-400 hover:text-white"><ZoomIn size={14}/></button>
+               <button className="p-1.5 bg-slate-800 border border-slate-700 rounded text-slate-400 hover:text-white"><ZoomOut size={14}/></button>
+               <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded border border-indigo-500/50">Export JSON</button>
             </div>
          </div>
+
+         <div className="flex-1 relative flex overflow-hidden">
+            {/* Canvas */}
+            <div className="flex-1 bg-[#050505] relative overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-5">
+               <svg className="w-full h-full pointer-events-none">
+                  <defs>
+                     <marker id="arrow" markerWidth="10" markerHeight="10" refX="20" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#475569" />
+                     </marker>
+                  </defs>
+                  
+                  {/* Links */}
+                  {data.links.map((link, i) => {
+                     const source = data.nodes.find(n => n.id === link.source);
+                     const target = data.nodes.find(n => n.id === link.target);
+                     if(!source || !target) return null;
+                     return (
+                        <g key={i}>
+                           <line 
+                              x1={source.x} y1={source.y} 
+                              x2={target.x} y2={target.y} 
+                              stroke="#334155" strokeWidth="1" 
+                              markerEnd="url(#arrow)"
+                           />
+                           <text x={(source.x + target.x)/2} y={(source.y + target.y)/2 - 5} textAnchor="middle" fill="#64748b" fontSize="10" className="bg-black">{link.label}</text>
+                        </g>
+                     );
+                  })}
+
+                  {/* Nodes */}
+                  {data.nodes.map((node, i) => (
+                     <g key={node.id} className="cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto">
+                        <circle cx={node.x} cy={node.y} r={node.r} fill={node.color} fillOpacity="0.2" stroke={node.color} strokeWidth="2" />
+                        <circle cx={node.x} cy={node.y} r="4" fill={node.color} />
+                        <text x={node.x} y={node.y + node.r + 15} textAnchor="middle" fill="#e2e8f0" fontSize="12" fontWeight="bold">{node.label}</text>
+                        <text x={node.x} y={node.y + node.r + 28} textAnchor="middle" fill="#94a3b8" fontSize="10">{node.type}</text>
+                     </g>
+                  ))}
+               </svg>
+               
+               {/* Info Overlay */}
+               <div className="absolute top-4 left-4 p-4 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-lg max-w-xs pointer-events-none">
+                  <h4 className="text-sm font-bold text-white mb-2">Graph Stats</h4>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-400">
+                     <div>Nodes: <span className="text-white">{data.nodes.length}</span></div>
+                     <div>Edges: <span className="text-white">{data.links.length}</span></div>
+                     <div>Density: <span className="text-emerald-400">0.45</span></div>
+                     <div>Communities: <span className="text-white">3</span></div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Source Files Sidebar */}
+            {showSources && (
+               <div className="w-80 bg-sci-panel border-l border-slate-800 flex flex-col animate-in slide-in-from-right duration-200 z-10 shadow-xl">
+                  <div className="p-4 border-b border-slate-800 font-bold text-white text-sm bg-slate-900/50 flex items-center justify-between">
+                     <span>图谱溯源 (Provenance)</span>
+                     <button onClick={() => setShowSources(false)} className="text-slate-400 hover:text-white"><X size={14}/></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-900/30">
+                     <p className="text-[10px] text-slate-500 mb-2">以下文件为当前知识图谱实体与关系的抽取来源：</p>
+                     {sources.map(src => (
+                        <div key={src.id} className="p-3 bg-slate-800/80 rounded border border-slate-700 hover:border-sci-accent/50 cursor-pointer group transition-all hover:bg-slate-800">
+                           <div className="flex items-start gap-3 mb-2">
+                              <div className="p-1.5 bg-blue-500/10 rounded text-blue-400 mt-0.5">
+                                 <File size={14}/>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                 <div className="text-xs font-bold text-white truncate group-hover:text-sci-accent transition-colors" title={src.name}>{src.name}</div>
+                                 <div className="text-[10px] text-slate-500 mt-0.5">{src.type} Document</div>
+                              </div>
+                           </div>
+                           <div className="flex justify-between items-center text-[10px] border-t border-slate-700/50 pt-2 mt-1">
+                              <span className="text-slate-500">Extraction Confidence</span>
+                              <span className="text-emerald-400 font-mono bg-emerald-500/10 px-1.5 rounded">{src.confidence}</span>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+                  <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-[10px] text-center text-slate-500">
+                     Click on a file to view raw content extraction.
+                  </div>
+               </div>
+            )}
+         </div>
       </div>
-      <div className="text-right">
-         <div className={`text-xs ${item.status === 'Synced' ? 'text-emerald-400' : 'text-amber-400'}`}>{item.status}</div>
-         <div className="text-[10px] text-slate-500">{item.lastUpdate}</div>
-      </div>
-   </div>
-);
+   );
+};
 
 // --- Main Component ---
 
@@ -177,7 +396,10 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
-
+  
+  // Knowledge Base State
+  const [knowledgeTab, setKnowledgeTab] = useState<'overview' | 'tech' | 'policy' | 'graph'>('overview');
+  
   // Transn Redu Specific State
   const [transnConfig, setTransnConfig] = useState({
       quantization: 'INT8',
@@ -251,11 +473,11 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
                <table className="w-full text-sm text-left">
                   <thead className="text-xs text-sci-muted uppercase bg-slate-900/50">
                      <tr>
-                        <th className="px-4 py-3">Agent 名称</th>
-                        <th className="px-4 py-3">定位</th>
-                        <th className="px-4 py-3">基座模型</th>
-                        <th className="px-4 py-3">Skills 能力</th>
-                        <th className="px-4 py-3">状态</th>
+                        <th className="px-4 py-3">Agent 名称 (Name)</th>
+                        <th className="px-4 py-3">决策目标 (Goal)</th>
+                        <th className="px-4 py-3">基座模型 (Model)</th>
+                        <th className="px-4 py-3">关键能力 (Skills)</th>
+                        <th className="px-4 py-3">状态 (Status)</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -290,6 +512,7 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
                         </div>
                         <div className="text-right">
                            <div className="text-xs text-slate-400 font-mono bg-slate-900 px-2 py-1 rounded border border-slate-800">{s.version}</div>
+                           <div className="text-[10px] text-slate-500 mt-1">{s.type}</div>
                         </div>
                      </div>
                   ))}
@@ -297,65 +520,142 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
             </div>
          );
       case 'ai-knowledge':
+         if (knowledgeTab === 'graph') {
+             return <KnowledgeGraphViewer 
+                data={mockGraphData['default']} 
+                title="环境领域知识图谱 (Environmental Ontology)"
+                onClose={() => setKnowledgeTab('overview')} 
+             />;
+         }
+
+         if (knowledgeTab === 'tech') {
+            return (
+               <div className="space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between mb-4">
+                     <button onClick={() => setKnowledgeTab('overview')} className="text-sm text-slate-400 hover:text-white flex items-center gap-2">
+                        <ArrowLeft size={16}/> 返回知识库
+                     </button>
+                     <div className="flex gap-2">
+                        <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-white hover:bg-slate-700">Filter</button>
+                        <button className="px-3 py-1.5 bg-sci-accent text-white rounded text-xs flex items-center gap-2"><Plus size={14}/> Upload Doc</button>
+                     </div>
+                  </div>
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><FileText className="text-blue-400"/> 技术文件库 (Technical Documents)</h2>
+                  <div className="bg-sci-surface/30 border border-slate-700 rounded-lg overflow-hidden">
+                     <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-900/50 text-xs uppercase text-sci-muted font-bold">
+                           <tr>
+                              <th className="px-6 py-4">文件名称 Name</th>
+                              <th className="px-6 py-4">类型 Type</th>
+                              <th className="px-6 py-4">大小 Size</th>
+                              <th className="px-6 py-4">作者/来源 Author</th>
+                              <th className="px-6 py-4">日期 Date</th>
+                              <th className="px-6 py-4 text-right">操作</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                           {techDocs.map(doc => (
+                              <tr key={doc.id} className="hover:bg-white/5 transition-colors group">
+                                 <td className="px-6 py-3 font-medium text-slate-200 flex items-center gap-2">
+                                    {doc.type === 'PDF' ? <FileText size={16} className="text-red-400"/> : doc.type === 'JSON' ? <FileCode size={16} className="text-yellow-400"/> : <FileText size={16} className="text-blue-400"/>}
+                                    {doc.name}
+                                 </td>
+                                 <td className="px-6 py-3 text-slate-400 text-xs">{doc.type}</td>
+                                 <td className="px-6 py-3 text-slate-400 text-xs font-mono">{doc.size}</td>
+                                 <td className="px-6 py-3 text-slate-300 text-xs">{doc.author}</td>
+                                 <td className="px-6 py-3 text-slate-500 text-xs font-mono">{doc.date}</td>
+                                 <td className="px-6 py-3 text-right">
+                                    <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"><Download size={14}/></button>
+                                 </td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            );
+         }
+
+         if (knowledgeTab === 'policy') {
+             return (
+               <div className="space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between mb-4">
+                     <button onClick={() => setKnowledgeTab('overview')} className="text-sm text-slate-400 hover:text-white flex items-center gap-2">
+                        <ArrowLeft size={16}/> 返回知识库
+                     </button>
+                     <div className="relative">
+                        <Search size={14} className="absolute left-3 top-2.5 text-slate-500"/>
+                        <input type="text" placeholder="搜索标准号、法规名称..." className="bg-slate-900 border border-slate-700 rounded pl-9 py-1.5 text-xs text-white focus:border-purple-500 outline-none w-64"/>
+                     </div>
+                  </div>
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Scale className="text-purple-400"/> 政策法规库 (Policies & Standards)</h2>
+                  <div className="grid grid-cols-1 gap-4">
+                     {policies.map(p => (
+                        <div key={p.id} className="bg-sci-surface/30 border border-slate-700 p-4 rounded-lg hover:border-slate-500 transition-all flex justify-between items-start">
+                           <div>
+                              <div className="flex items-center gap-3 mb-1">
+                                 <span className="text-xs font-mono text-purple-300 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-500/30">{p.code}</span>
+                                 <h3 className="font-bold text-white text-sm">{p.name}</h3>
+                                 <span className={`text-[10px] px-1.5 py-0.5 rounded border ${p.status === '现行' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700 text-slate-400 border-slate-600'}`}>{p.status}</span>
+                              </div>
+                              <p className="text-xs text-slate-400 mt-2 mb-2">{p.desc}</p>
+                              <div className="text-[10px] text-slate-500 flex gap-4">
+                                 <span>发布部门: {p.department}</span>
+                                 <span>实施日期: {p.date}</span>
+                              </div>
+                           </div>
+                           <button className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded border border-slate-700 hover:bg-slate-700"><Eye size={16}/></button>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+             );
+         }
+
+         // Overview Mode
          return (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
-               <div className="lg:col-span-2 space-y-3">
-                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2"><Library size={16}/> 知识库 Knowledge Base</h3>
-                  {knowledgeBases.map(k => <KnowledgeCard key={k.id} item={k} onClick={() => handleItemClick(k)}/>)}
-                  <button className="w-full py-3 border border-dashed border-slate-700 rounded text-slate-500 hover:text-white hover:border-slate-500 text-sm flex items-center justify-center gap-2">
-                     <Plus size={16}/> 添加知识库
-                  </button>
-               </div>
-               <div className="lg:col-span-1 bg-sci-surface/30 border border-slate-700/50 rounded p-4">
-                  <h3 className="text-sm font-bold text-white mb-4">知识图谱概览 Ontology</h3>
-                  <div className="h-48 bg-slate-900/50 rounded flex items-center justify-center border border-slate-800">
-                     <span className="text-xs text-slate-500">[ Knowledge Graph Vis ]</span>
-                  </div>
-                  <div className="mt-4 space-y-2 text-xs text-slate-400">
-                     <div className="flex justify-between"><span>实体 Entities</span> <span className="text-white">12,403</span></div>
-                     <div className="flex justify-between"><span>关系 Relations</span> <span className="text-white">45,201</span></div>
-                     <div className="flex justify-between"><span>存储 Vector DB</span> <span className="text-emerald-400">Healthy</span></div>
-                  </div>
-               </div>
-            </div>
-         );
-      case 'ai-ops':
-         return (
-            <div className="space-y-6 animate-in fade-in">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-slate-800/50 p-4 rounded border border-slate-700">
-                     <div className="text-xs text-slate-400">Total Tokens (24h)</div>
-                     <div className="text-2xl font-bold text-white font-mono mt-1">45.2 M</div>
-                  </div>
-                  <div className="bg-slate-800/50 p-4 rounded border border-slate-700">
-                     <div className="text-xs text-slate-400">Avg Latency</div>
-                     <div className="text-2xl font-bold text-white font-mono mt-1">128 ms</div>
-                  </div>
-                  <div className="bg-slate-800/50 p-4 rounded border border-slate-700">
-                     <div className="text-xs text-slate-400">Error Rate</div>
-                     <div className="text-2xl font-bold text-emerald-400 font-mono mt-1">0.02%</div>
-                  </div>
-               </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in h-full items-start pt-10">
+               <CategoryCard 
+                  icon={FileText} 
+                  title="技术文件 Technical Docs" 
+                  desc="环境模型用户手册、参数率定报告、技术白皮书与算法说明文档。" 
+                  count={techDocs.length} 
+                  color="text-blue-400"
+                  onClick={() => setKnowledgeTab('tech')}
+               />
+               <CategoryCard 
+                  icon={Scale} 
+                  title="政策法规 Policies" 
+                  desc="国家环境标准 (GB)、行业规范 (HJ)、政策文件与行动计划库。" 
+                  count={policies.length} 
+                  color="text-purple-400"
+                  onClick={() => setKnowledgeTab('policy')}
+               />
+               <CategoryCard 
+                  icon={Network} 
+                  title="知识图谱 Knowledge Graph" 
+                  desc="基于本体构建的环境领域实体关系网络，支持可视化探索与推理。" 
+                  count="12.4k" 
+                  color="text-emerald-400"
+                  onClick={() => setKnowledgeTab('graph')}
+               />
                
-               <div className="h-64 bg-slate-800/30 border border-slate-700 rounded p-4">
-                  <h3 className="text-sm font-bold text-white mb-4">调用量与延迟监控 (Traffic & Latency)</h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                     <AreaChart data={opsData}>
-                        <defs>
-                           <linearGradient id="colorToken" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                           </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false}/>
-                        <XAxis dataKey="time" tick={{fontSize: 10}} stroke="#475569"/>
-                        <YAxis yAxisId="left" stroke="#8b5cf6" fontSize={10}/>
-                        <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={10}/>
-                        <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px'}}/>
-                        <Area yAxisId="left" type="monotone" dataKey="tokens" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorToken)" />
-                        <Line yAxisId="right" type="monotone" dataKey="latency" stroke="#10b981" strokeWidth={2} dot={false}/>
-                     </AreaChart>
-                  </ResponsiveContainer>
+               <div className="lg:col-span-3 mt-8 p-6 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
+                  <h3 className="text-sm font-bold text-slate-400 mb-2">RAG 检索增强生成状态</h3>
+                  <div className="flex justify-center gap-8 text-xs">
+                     <div className="flex flex-col gap-1">
+                        <span className="text-slate-500">Vector Index</span>
+                        <span className="text-emerald-400 font-mono">Ready</span>
+                     </div>
+                     <div className="flex flex-col gap-1">
+                        <span className="text-slate-500">Last Sync</span>
+                        <span className="text-white font-mono">10 min ago</span>
+                     </div>
+                     <div className="flex flex-col gap-1">
+                        <span className="text-slate-500">Total Chunks</span>
+                        <span className="text-white font-mono">842,109</span>
+                     </div>
+                  </div>
                </div>
             </div>
          );
@@ -373,13 +673,12 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
   // Header Logic
   const getHeader = () => {
      switch(view) {
-        case 'ai-models': return { title: '模型库 Model Hub', desc: '统一管理通用大模型与环境机理模型' };
-        case 'ai-algorithms': return { title: '算法库 Algorithm Hub', desc: '统一管理统计分析与数值计算算法' };
-        case 'ai-workflows': return { title: 'Workflow 池 Workflow Pool', desc: '查看与管理所有环境模拟与数据处理工作流' };
-        case 'ai-agents': return { title: '智能体编排 Agent Hub', desc: '定义 Agent 角色、任务目标与协同策略' };
-        case 'ai-skills': return { title: 'Skills 能力池 Skill Pool', desc: '原子化能力封装，供 Agent 与 Workflow 调用' };
-        case 'ai-knowledge': return { title: '知识与记忆 Knowledge', desc: 'RAG 知识库管理与本体构建' };
-        case 'ai-ops': return { title: 'AI 运行监控 AI Ops', desc: 'Token 消耗、延迟监控与异常追踪' };
+        case 'ai-models': return { title: '模型库', desc: '统一管理通用大模型与环境机理模型' };
+        case 'ai-algorithms': return { title: '算法库', desc: '统一管理统计分析与数值计算算法' };
+        case 'ai-workflows': return { title: '工作流', desc: '查看与管理所有环境模拟与数据处理工作流' };
+        case 'ai-agents': return { title: '智能体', desc: '定义 Agent 角色、任务目标与协同策略' };
+        case 'ai-skills': return { title: 'Skills', desc: '原子化能力封装，供 Agent 与 Workflow 调用' };
+        case 'ai-knowledge': return { title: '知识库', desc: '包含技术文档、政策法规与领域知识图谱' };
         default: return { title: 'AI Control Plane', desc: 'Platform Administration' };
      }
   };
@@ -585,16 +884,53 @@ export const AIPlatform: React.FC<AIPlatformProps> = ({ view }) => {
                       </div>
                    )}
 
-                   {/* Skill Specific */}
+                   {/* Skill Specific (Enhanced) */}
                    {view === 'ai-skills' && (
-                      <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-[10px] text-slate-400 overflow-x-auto">
-                         <p className="text-purple-400">// Interface Definition</p>
-                         <p>interface {selectedItem.name}Input {'{'}</p>
-                         <p className="pl-4">source: {selectedItem.input};</p>
-                         <p>{'}'}</p>
-                         <p className="mt-2">interface {selectedItem.name}Output {'{'}</p>
-                         <p className="pl-4">result: {selectedItem.output};</p>
-                         <p>{'}'}</p>
+                      <div className="space-y-4">
+                        <div className="p-3 bg-slate-800/50 rounded border border-slate-700">
+                            <h4 className="text-xs font-bold text-slate-400 mb-2 uppercase">输入/输出定义 I/O Spec</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <span className="block text-[10px] text-slate-500 mb-1">Input Source</span>
+                                    <code className="block bg-slate-900 px-2 py-1 rounded text-emerald-400 font-mono border border-slate-800">{selectedItem.input}</code>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] text-slate-500 mb-1">Output Artifact</span>
+                                    <code className="block bg-slate-900 px-2 py-1 rounded text-purple-400 font-mono border border-slate-800">{selectedItem.output}</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-3 bg-slate-800/50 rounded border border-slate-700">
+                            <h4 className="text-xs font-bold text-slate-400 mb-2 uppercase flex justify-between">
+                                运行时参数 Runtime Params
+                                <span className="text-[10px] bg-slate-700 text-white px-1.5 rounded">Configurable</span>
+                            </h4>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-300">Max Concurrency</span>
+                                    <input type="number" className="w-16 bg-slate-900 border border-slate-700 rounded px-1 text-right text-white" defaultValue={5} />
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-300">Timeout (ms)</span>
+                                    <input type="number" className="w-16 bg-slate-900 border border-slate-700 rounded px-1 text-right text-white" defaultValue={30000} />
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-300">Cache Result</span>
+                                    <div className="w-8 h-4 bg-emerald-500/20 border border-emerald-500/50 rounded-full relative cursor-pointer">
+                                        <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-emerald-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-[10px] text-slate-400 overflow-x-auto">
+                            <p className="text-slate-500 mb-1"># API Invocation Example</p>
+                            <p className="text-blue-400">await <span className="text-yellow-200">client</span>.skills.invoke({'{'}</p>
+                            <p className="pl-4">id: <span className="text-green-300">'{selectedItem.id}'</span>,</p>
+                            <p className="pl-4">input: data_payload</p>
+                            <p className="text-blue-400">{'}'});</p>
+                         </div>
                       </div>
                    )}
                 </div>

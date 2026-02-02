@@ -54,13 +54,12 @@ export const Layout: React.FC<LayoutProps> = ({
   ];
 
   const aiPlatformNav = [
-    { id: 'ai-models', label: '模型库 Model Hub', icon: Brain },
-    { id: 'ai-algorithms', label: '算法库 Algo Hub', icon: Code2 },
+    { id: 'ai-models', label: '模型库', icon: Brain },
+    { id: 'ai-algorithms', label: '算法库', icon: Code2 },
     { id: 'ai-workflows', label: 'Workflow', icon: Workflow },
-    { id: 'ai-agents', label: '智能体 Agent', icon: CircuitBoard },
-    { id: 'ai-skills', label: 'Skills 能力池', icon: Sparkles },
-    { id: 'ai-knowledge', label: '知识与记忆', icon: Library },
-    { id: 'ai-ops', label: 'AI 运行监控', icon: ServerCog },
+    { id: 'ai-agents', label: '智能体', icon: CircuitBoard },
+    { id: 'ai-skills', label: 'Skills', icon: Sparkles },
+    { id: 'ai-knowledge', label: '知识库', icon: Library },
   ];
 
   return (

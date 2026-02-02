@@ -89,7 +89,6 @@ export type PageId =
   | 'ai-skills'
   | 'ai-knowledge'
   | 'ai-reasoning'
-  | 'ai-ops'
   | 'ai-security'
   
   // System Layer
