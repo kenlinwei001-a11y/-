@@ -251,7 +251,7 @@ export const ProjectBI: React.FC<ProjectBIProps> = ({ project, onNavigate }) => 
                      <div className="flex items-center gap-1 text-[10px]"><span className="w-3 h-3 rounded-sm bg-green-500"></span> 0-35 (优)</div>
                      <div className="flex items-center gap-1 text-[10px]"><span className="w-3 h-3 rounded-sm bg-yellow-500"></span> 35-75 (良)</div>
                      <div className="flex items-center gap-1 text-[10px]"><span className="w-3 h-3 rounded-sm bg-orange-500"></span> 75-115 (轻度)</div>
-                     <div className="flex items-center gap-1 text-[10px]"><span className="w-3 h-3 rounded-sm bg-red-600"></span> >150 (重度)</div>
+                     <div className="flex items-center gap-1 text-[10px]"><span className="w-3 h-3 rounded-sm bg-red-600"></span> &gt;150 (重度)</div>
                   </div>
                )}
 
