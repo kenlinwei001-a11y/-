@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
               <tr className="hover:bg-white/5 transition-colors group cursor-pointer">
                 <td className="px-5 py-3"><span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">Warning</span></td>
                 <td className="px-5 py-3 text-white font-medium">珠江三角洲水质</td>
-                <td className="px-5 py-3 text-slate-300">监测站 A402 数据缺失率 > 20%</td>
+                <td className="px-5 py-3 text-slate-300">监测站 A402 数据缺失率 &gt; 20%</td>
                 <td className="px-5 py-3 text-sci-muted font-mono">10-24 11:15</td>
                 <td className="px-5 py-3"><span className="text-sci-accent group-hover:underline">待分析</span></td>
               </tr>

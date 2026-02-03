@@ -1,9 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ChatMessage } from "../types";
-
-// Initialize Gemini Client
-const apiKey = process.env.API_KEY || ''; 
-const ai = new GoogleGenAI({ apiKey });
 
 const MODEL_ID = 'gemini-3-flash-preview';
 
@@ -31,18 +26,23 @@ export const sendMessageToGemini = async (
   currentMessage: string,
   contextData?: string
 ): Promise<string> => {
+  const apiKey = import.meta.env.GEMINI_API_KEY || '';
   if (!apiKey) {
     return "API Key 未配置。请检查环境变量。";
   }
 
   try {
+    // Lazy-load SDK so the app can render even without an API key or when the user never opens Copilot.
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey });
+
     // Construct the prompt with context
     let fullPrompt = currentMessage;
     if (contextData) {
       fullPrompt = `[系统当前上下文]: ${contextData}\n\n[用户提问]: ${currentMessage}`;
     }
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
       model: MODEL_ID,
       contents: [
         {

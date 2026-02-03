@@ -394,7 +394,7 @@ export const DataManager: React.FC = () => {
                                         <FileCode size={14} className="text-purple-400"/> {job.name}
                                      </td>
                                      <td className="px-6 py-4 text-slate-400 text-xs font-mono">
-                                        {job.sourceId} <span className="text-slate-600">-></span> {job.targetId}
+                                         {job.sourceId} <span className="text-slate-600">→</span> {job.targetId}
                                      </td>
                                      <td className="px-6 py-4 text-slate-400">{job.schedule}</td>
                                      <td className="px-6 py-4">
